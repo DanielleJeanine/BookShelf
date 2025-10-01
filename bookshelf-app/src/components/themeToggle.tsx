@@ -31,7 +31,7 @@ export function ThemeToggle() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="icon">
+        <Button variant="ghost" size="icon">
           {getThemeIcon()}
           <span className="sr-only">Alternar tema</span>
         </Button>
