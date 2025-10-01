@@ -1,13 +1,12 @@
 // src/app/add-book/page.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import Image from 'next/image';
-import { v4 as uuidv4 } from 'uuid';
+import { useFormState, useFormStatus } from 'react-dom'; 
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,11 +16,10 @@ import { Slider } from '@/components/ui/slider';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
-import { Book, availableGenres, ReadingStatus } from '@/lib/types';
-import { initialBooks } from '@/lib/data';
-
+import { availableGenres } from '@/lib/types';
+import { createBook } from '@/app/actions'; 
 
 const formSchema = z.object({
   title: z.string().min(1, { message: 'Título é obrigatório.' }),
@@ -38,12 +36,9 @@ const formSchema = z.object({
 });
 
 export default function AddBookPage() {
-  const router = useRouter();
-  const { toast } = useToast();
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
 
-  type AddBookFormValues = z.infer<typeof formSchema>;
-  const form = useForm<AddBookFormValues>({
+  const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema) as any,
     defaultValues: {
       title: '',
@@ -60,6 +55,20 @@ export default function AddBookPage() {
     },
   });
 
+  const [state, formAction] = useFormState(createBook, { errors: {}, message: '' });
+
+  useEffect(() => {
+    if (state.message && !state.errors) {
+      toast.success(state.message);
+      form.reset();
+    } else if (state.errors) {
+      Object.entries(state.errors).forEach(([key, value]) => {
+        form.setError(key as keyof z.infer<typeof formSchema>, { type: 'server', message: (value as string[]).join(', ') });
+      });
+      toast.error(state.message || 'Erro ao adicionar livro.');
+    }
+  }, [state, form]);
+
   const coverFieldValue = form.watch('cover');
   useEffect(() => {
     if (coverFieldValue && z.string().url().safeParse(coverFieldValue).success) {
@@ -68,33 +77,6 @@ export default function AddBookPage() {
       setCoverPreview(null);
     }
   }, [coverFieldValue]);
-
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
-    const newBook: Book = {
-      id: uuidv4(),
-      title: values.title,
-      author: values.author,
-      genre: values.genre || undefined,
-      year: values.year ? Number(values.year) : undefined,
-      pages: values.pages ? Number(values.pages) : undefined,
-      rating: values.rating || undefined,
-      synopsis: values.synopsis || undefined,
-      cover: values.cover || undefined,
-      current_page: values.current_page ? Number(values.current_page) : undefined,
-      status: values.status,
-      notes: values.notes || undefined,
-    };
-
-    
-    initialBooks.push(newBook);
-
-    toast({
-      title: 'Sucesso!',
-      description: `Livro "${newBook.title}" adicionado com sucesso.`, 
-    });
-
-    router.push('/books'); 
-  };
 
   const totalFields = Object.keys(form.getValues()).length;
   const filledFields = Object.keys(form.getValues()).filter(key => {
@@ -113,7 +95,7 @@ export default function AddBookPage() {
       <p className="text-sm text-center text-gray-500">Progresso do Formulário: {formProgress.toFixed(0)}%</p>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <form action={formAction} className="space-y-6">
           <FormField
             control={form.control}
             name="title"
@@ -259,7 +241,7 @@ export default function AddBookPage() {
                 <FormControl>
                   <RadioGroup
                     onValueChange={field.onChange}
-                    defaultValue={field.value}
+                    value={field.value}
                     className="flex flex-col space-y-1"
                   >
                     {['QUERO_LER', 'LENDO', 'LIDO', 'PAUSADO', 'ABANDONADO'].map(status => (
@@ -310,11 +292,18 @@ export default function AddBookPage() {
             )}
           />
 
-          <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-            {form.formState.isSubmitting ? 'Adicionando...' : 'Adicionar Livro'}
-          </Button>
+          <SubmitButton />
         </form>
       </Form>
     </div>
+  );
+}
+
+function SubmitButton() {
+  const { pending } = useFormStatus();
+  return (
+    <Button type="submit" className="w-full" disabled={pending}>
+      {pending ? 'Adicionando...' : 'Adicionar Livro'}
+    </Button>
   );
 }

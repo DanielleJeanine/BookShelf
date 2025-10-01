@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { BookIcon } from 'lucide-react';
+import { ThemeToggle } from './themeToggle';
 
 export function Header() {
   return (
@@ -9,25 +10,28 @@ export function Header() {
           <BookIcon className="h-6 w-6" />
           <span className="text-xl font-bold">BookShelf</span>
         </Link>
-        <nav>
-          <ul className="flex space-x-4">
-            <li>
-              <Link href="/" className="hover:underline">
-                Dashboard
-              </Link>
-            </li>
-            <li>
-              <Link href="/books" className="hover:underline">
-                Minha Biblioteca
-              </Link>
-            </li>
-            <li>
-              <Link href="/add-book" className="hover:underline">
-                Adicionar Livro
-              </Link>
-            </li>
-          </ul>
-        </nav>
+        <div className="flex items-center space-x-4">
+          <nav>
+            <ul className="flex space-x-4">
+              <li>
+                <Link href="/" className="hover:underline">
+                  Dashboard
+                </Link>
+              </li>
+              <li>
+                <Link href="/books" className="hover:underline">
+                  Minha Biblioteca
+                </Link>
+              </li>
+              <li>
+                <Link href="/add-book" className="hover:underline">
+                  Adicionar Livro
+                </Link>
+              </li>
+            </ul>
+          </nav>
+          <ThemeToggle />
+        </div>
       </div>
     </header>
   );
