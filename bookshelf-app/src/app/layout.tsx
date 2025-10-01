@@ -2,8 +2,9 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
-import { Header } from '@/components/Header';
+import { Header } from '@/components/header';
 import { Toaster } from '@/components/ui/sonner';
+import { ThemeProvider } from '@/components/providers';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -18,13 +19,20 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" suppressHydrationWarning>
       <body className={inter.className}>
-        <Header />
-        <main className="container mx-auto p-4 mt-4">
-          {children}
-        </main>
-        <Toaster />
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system" 
+          enableSystem 
+          disableTransitionOnChange
+        >
+          <Header />
+          <main className="container mx-auto p-4 mt-4">
+            {children}
+          </main>
+          <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   );

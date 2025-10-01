@@ -1,33 +1,71 @@
-'use client';
-
-import { useState, useEffect } from 'react';
-import { initialBooks } from '@/lib/data';
-import { Book, availableGenres } from '@/lib/types';
-import { BookCard } from '@/components/BookCard';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+// src/app/books/page.tsx
+import { Suspense } from 'react';
+import { BookCard } from '@/components/bookCard';
+import { BooksFilter } from '@/components/booksFilter'; // Componente cliente para filtros
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { PlusCircleIcon } from 'lucide-react';
+import { Book } from '@/lib/types';
 
-export default function BooksPage() {
-  const [books, setBooks] = useState<Book[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterGenre, setFilterGenre] = useState<string | undefined>(undefined);
+interface BooksPageProps {
+  searchParams: {
+    search?: string;
+    genre?: string;
+    status?: string;
+  };
+}
 
-  useEffect(() => {
-    setBooks(initialBooks);
-  }, []);
+async function getBooks(searchParams: BooksPageProps['searchParams']) {
+  const baseUrl = process.env.NODE_ENV === 'production' 
+    ? 'https://your-domain.com' 
+    : 'http://localhost:3000';
+  
+  const params = new URLSearchParams();
+  if (searchParams.search) {
+    params.append('title', searchParams.search);
+   
+  }
+  if (searchParams.genre) params.append('genre', searchParams.genre);
+  if (searchParams.status) params.append('status', searchParams.status);
 
-  const filteredBooks = books.filter(book => {
-    const matchesSearch = 
-      book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      book.author.toLowerCase().includes(searchTerm.toLowerCase());
+  try {
+    const response = await fetch(`${baseUrl}/api/books?${params.toString()}`, {
+      cache: 'no-store',
+    });
     
-    const matchesGenre = filterGenre ? book.genre === filterGenre : true;
+    if (!response.ok) {
+      throw new Error('Falha ao buscar livros');
+    }
+    
+    const data = await response.json();
+    return data.books as Book[];
+  } catch (error) {
+    console.error('Erro ao buscar livros da API:', error);
+    // Fallback para dados locais em caso de erro ou desenvolvimento
+    const { initialBooks } = await import('@/lib/data');
+    let filteredBooks = [...initialBooks];
 
-    return matchesSearch && matchesGenre;
-  });
+    if (searchParams.search) {
+      filteredBooks = filteredBooks.filter(book =>
+        book.title.toLowerCase().includes(searchParams.search!.toLowerCase()) ||
+        book.author.toLowerCase().includes(searchParams.search!.toLowerCase())
+      );
+    }
+
+    if (searchParams.genre) {
+      filteredBooks = filteredBooks.filter(book => book.genre === searchParams.genre);
+    }
+
+    if (searchParams.status) {
+      filteredBooks = filteredBooks.filter(book => book.status === searchParams.status);
+    }
+
+    return filteredBooks;
+  }
+}
+
+export default async function BooksPage({ searchParams }: BooksPageProps) {
+  const books = await getBooks(searchParams);
 
   return (
     <div className="space-y-6">
@@ -38,32 +76,17 @@ export default function BooksPage() {
         </Link>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-4">
-        <Input
-          placeholder="Buscar por título ou autor..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="flex-1"
-        />
-        <Select onValueChange={(value) => setFilterGenre(value === 'all' ? undefined : value)} value={filterGenre || 'all'}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Filtrar por Gênero" />
-          </SelectTrigger>
-          <SelectContent>
-            {availableGenres.map(genre => (
-              <SelectItem key={genre} value={genre}>{genre}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      <Suspense fallback={<div>Carregando filtros...</div>}>
+        <BooksFilter />
+      </Suspense>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {filteredBooks.map(book => (
+        {books.map((book: Book) => (
           <BookCard key={book.id} book={book} />
         ))}
       </div>
 
-      {filteredBooks.length === 0 && (
+      {books.length === 0 && (
         <p className="text-center text-gray-500">Nenhum livro encontrado com os critérios de busca/filtro.</p>
       )}
     </div>
