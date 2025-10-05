@@ -1,66 +1,63 @@
-import Link from 'next/link';
-import Image from 'next/image';
-import { Book } from '@/lib/types';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { StarIcon, BookOpenIcon, Trash2Icon, EditIcon } from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { BookWithGenre } from '@/lib/types';
 
 interface BookCardProps {
-  book: Book;
+  book: BookWithGenre;
 }
 
 export function BookCard({ book }: BookCardProps) {
-  const renderStars = (rating: number | undefined) => {
-    if (!rating) return null;
-    return (
-      <div className="flex items-center">
-        {[...Array(5)].map((_, i) => (
-          <StarIcon
-            key={i}
-            className={`h-4 w-4 ${i < rating ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}`}
-          />
-        ))}
-      </div>
-    );
+  const getStatusVariant = (status: string): "default" | "secondary" | "destructive" | "outline" | undefined => {
+    switch (status) {
+      case 'LENDO':
+        return 'default';
+      case 'LIDO':
+        return 'default';
+      case 'QUERO_LER':
+        return 'secondary';
+      case 'PAUSADO':
+        return 'outline';
+      case 'ABANDONADO':
+        return 'destructive';
+      default:
+        return 'outline';
+    }
   };
 
   return (
-    <Card className="flex flex-col">
-      <CardHeader className="relative p-0">
-        <div className="relative w-full h-48 bg-gray-200 flex items-center justify-center overflow-hidden rounded-t-lg">
-          {book.cover ? (
-            <Image
-              src={book.cover}
-              alt={`Capa do livro ${book.title}`}
-              fill
-              style={{ objectFit: 'cover' }}
-              className="rounded-t-lg"
-            />
-          ) : (
-            <BookOpenIcon className="h-16 w-16 text-gray-400" />
+    <Link href={`/books/${book.id}`}>
+      <Card className="h-full flex flex-col hover:shadow-lg transition-shadow duration-200">
+        <CardHeader className="flex-shrink-0">
+          {book.cover && (
+            <div className="relative w-full h-48 mb-4">
+              <Image
+                src={book.cover}
+                alt={book.title}
+                fill
+                className="rounded-md object-cover"
+              />
+            </div>
           )}
-        </div>
-      </CardHeader>
-      <CardContent className="p-4 flex-grow">
-        <CardTitle className="text-lg font-bold mb-1 line-clamp-2">{book.title}</CardTitle>
-        <CardDescription className="text-sm text-gray-600 mb-2">{book.author}</CardDescription>
-        <div className="flex items-center justify-between text-sm text-gray-500 mb-2">
-          {book.year && <span>{book.year}</span>}
-          {renderStars(book.rating)}
-        </div>
-        {book.genre && <Badge variant="secondary" className="mb-2">{book.genre}</Badge>}
-        <p className="text-sm text-gray-700 line-clamp-3">{book.synopsis}</p>
-      </CardContent>
-      <CardFooter className="p-4 border-t flex justify-end space-x-2">
-        <Link href={`/books/${book.id}`}>
-          <Button variant="outline" size="sm">Visualizar</Button>
-        </Link>
-        <Link href={`/books/${book.id}/edit`}>
-          <Button variant="outline" size="sm"><EditIcon className="h-4 w-4 mr-2" />Editar</Button>
-        </Link>
-        <Button variant="destructive" size="sm"><Trash2Icon className="h-4 w-4 mr-2" />Excluir</Button>
-      </CardFooter>
-    </Card>
+          <CardTitle className="text-xl line-clamp-2">{book.title}</CardTitle>
+          <p className="text-sm text-muted-foreground line-clamp-1">{book.author}</p>
+        </CardHeader>
+        <CardContent className="flex-grow">
+          <div className="flex flex-wrap gap-2 mb-2">
+            {book.genre?.name && <Badge variant="outline">{book.genre.name}</Badge>}
+            {book.year && <Badge variant="outline">{book.year}</Badge>}
+            {book.rating && book.rating > 0 && <Badge variant="outline">{'⭐'.repeat(book.rating)}</Badge>}
+          </div>
+          <Badge variant={getStatusVariant(book.status)}>{book.status.replace('_', ' ')}</Badge>
+          {book.currentPage !== null && book.currentPage !== undefined && book.pages && book.currentPage > 0 && (
+            <p className="text-sm text-muted-foreground mt-2">Pág. {book.currentPage} de {book.pages}</p>
+          )}
+        </CardContent>
+        <CardFooter className="text-xs text-muted-foreground">
+          Atualizado em: {new Date(book.updatedAt).toLocaleDateString()}
+        </CardFooter>
+      </Card>
+    </Link>
   );
 }

@@ -1,17 +1,18 @@
-// src/app/api/categories/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { availableGenres } from '@/lib/types';
+import { getGenres, createGenre } from '@/lib/database';
 
 const addGenreSchema = z.object({
-  genre: z.string().min(1, 'Nome do gênero é obrigatório'),
+  name: z.string().min(1, 'Nome do gênero é obrigatório'),
 });
 
 export async function GET() {
   try {
+    const genres = await getGenres();
+    
     return NextResponse.json({
-      genres: availableGenres,
-      total: availableGenres.length,
+      genres,
+      total: genres.length,
     });
   } catch (error) {
     console.error('Erro ao buscar categorias:', error);
@@ -26,27 +27,26 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     
-    const { genre } = addGenreSchema.parse(body);
+    const { name } = addGenreSchema.parse(body);
 
-    if (availableGenres.includes(genre)) {
-      return NextResponse.json(
-        { error: 'Gênero já existe' },
-        { status: 409 }
-      );
-    }
-
-    availableGenres.push(genre);
+    const newGenre = await createGenre(name);
 
     return NextResponse.json({
       message: 'Gênero adicionado com sucesso',
-      genre,
-      genres: availableGenres,
+      genre: newGenre,
     }, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Dados inválidos', details: error.issues },
         { status: 400 }
+      );
+    }
+
+    if (error instanceof Error && error.message.includes('Unique constraint')) {
+      return NextResponse.json(
+        { error: 'Gênero já existe' },
+        { status: 409 }
       );
     }
 

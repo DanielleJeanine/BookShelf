@@ -3,106 +3,149 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
-import { initialBooks } from '@/lib/data';
-import { Book } from '@/lib/types';
-import { v4 as uuidv4 } from 'uuid';
+import { createBook as dbCreateBook, updateBook as dbUpdateBook, deleteBook as dbDeleteBook, createGenre } from '@/lib/database';
+import { ReadingStatus } from '@/generated/prisma';
 
 const bookSchema = z.object({
   title: z.string().min(1, { message: 'Título é obrigatório.' }),
   author: z.string().min(1, { message: 'Autor é obrigatório.' }),
-  genre: z.string().optional().transform(e => e === "" ? undefined : e),
+  genreId: z.string().optional().transform(e => e === "" ? undefined : e),
   year: z.coerce.number().int().min(1000).max(new Date().getFullYear()).optional().transform(e => isNaN(e as number) ? undefined : e),
   pages: z.coerce.number().int().min(1).optional().transform(e => isNaN(e as number) ? undefined : e),
   rating: z.coerce.number().min(1).max(5).optional().transform(e => isNaN(e as number) ? undefined : e),
   synopsis: z.string().optional().transform(e => e === "" ? undefined : e),
   cover: z.string().url({ message: 'URL da capa inválida.' }).optional().transform(e => e === "" ? undefined : e),
-  current_page: z.coerce.number().int().min(0).optional().transform(e => isNaN(e as number) ? undefined : e),
+  currentPage: z.coerce.number().int().min(0).optional().transform(e => isNaN(e as number) ? undefined : e),
   status: z.enum(['QUERO_LER', 'LENDO', 'LIDO', 'PAUSADO', 'ABANDONADO'], { message: 'Status de leitura inválido.' }),
+  isbn: z.string().optional().transform(e => e === "" ? undefined : e),
   notes: z.string().optional().transform(e => e === "" ? undefined : e),
 });
 
 export async function createBook(prevState: any, formData: FormData) {
-  const rawFormData = Object.fromEntries(formData.entries());
-  const validatedFields = bookSchema.safeParse(rawFormData);
+  try {
+    const rawFormData = Object.fromEntries(formData.entries());
+    const validatedFields = bookSchema.safeParse(rawFormData);
 
-  if (!validatedFields.success) {
+    if (!validatedFields.success) {
+      return {
+        errors: validatedFields.error.flatten().fieldErrors,
+        message: 'Falha na validação do formulário.',
+      };
+    }
+
+    const { title, author, genreId, year, pages, rating, synopsis, cover, currentPage, status, isbn, notes } = validatedFields.data;
+
+    await dbCreateBook({
+      title,
+      author,
+      genreId,
+      year,
+      pages,
+      rating,
+      synopsis,
+      cover,
+      currentPage,
+      status: status as ReadingStatus,
+      isbn,
+      notes,
+    });
+
+    revalidatePath('/books');
+    redirect('/books');
+  } catch (error) {
+    console.error('Erro ao criar livro:', error);
     return {
-      errors: validatedFields.error.flatten().fieldErrors,
-      message: 'Falha na validação do formulário.',
+      errors: {},
+      message: 'Erro ao criar livro. Tente novamente.',
     };
   }
-
-  const { title, author, genre, year, pages, rating, synopsis, cover, current_page, status, notes } = validatedFields.data;
-
-  const newBook: Book = {
-    id: uuidv4(),
-    title,
-    author,
-    genre,
-    year,
-    pages,
-    rating,
-    synopsis,
-    cover,
-    current_page,
-    status,
-    notes,
-  };
-
-  initialBooks.push(newBook);
-
-  revalidatePath('/books'); 
-  redirect('/books'); 
 }
 
 export async function updateBook(id: string, prevState: any, formData: FormData) {
-  const rawFormData = Object.fromEntries(formData.entries());
-  const validatedFields = bookSchema.safeParse(rawFormData);
+  try {
+    const rawFormData = Object.fromEntries(formData.entries());
+    const validatedFields = bookSchema.safeParse(rawFormData);
 
-  if (!validatedFields.success) {
+    if (!validatedFields.success) {
+      return {
+        errors: validatedFields.error.flatten().fieldErrors,
+        message: 'Falha na validação do formulário.',
+      };
+    }
+
+    const { title, author, genreId, year, pages, rating, synopsis, cover, currentPage, status, isbn, notes } = validatedFields.data;
+
+    await dbUpdateBook(id, {
+      title,
+      author,
+      genreId,
+      year,
+      pages,
+      rating,
+      synopsis,
+      cover,
+      currentPage,
+      status: status as ReadingStatus,
+      isbn,
+      notes,
+    });
+
+    revalidatePath('/books');
+    revalidatePath(`/books/${id}`);
+    redirect(`/books/${id}`);
+  } catch (error) {
+    console.error('Erro ao atualizar livro:', error);
     return {
-      errors: validatedFields.error.flatten().fieldErrors,
-      message: 'Falha na validação do formulário.',
+      errors: {},
+      message: 'Erro ao atualizar livro. Tente novamente.',
     };
   }
-
-  const { title, author, genre, year, pages, rating, synopsis, cover, current_page, status, notes } = validatedFields.data;
-
-  const bookIndex = initialBooks.findIndex(b => b.id === id);
-  if (bookIndex === -1) {
-    return { message: 'Livro não encontrado para atualização.' };
-  }
-
-  const updatedBook: Book = {
-    ...initialBooks[bookIndex],
-    title,
-    author,
-    genre,
-    year,
-    pages,
-    rating,
-    synopsis,
-    cover,
-    current_page,
-    status,
-    notes,
-  };
-
-  initialBooks[bookIndex] = updatedBook;
-
-  revalidatePath('/books'); 
-  revalidatePath(`/books/${id}`); 
-  redirect(`/books/${id}`); 
 }
 
 export async function deleteBook(id: string) {
-  const bookIndex = initialBooks.findIndex(b => b.id === id);
-  if (bookIndex === -1) {
-    return { message: 'Livro não encontrado para exclusão.' };
+  try {
+    await dbDeleteBook(id);
+    revalidatePath('/books');
+    redirect('/books');
+  } catch (error) {
+    console.error('Erro ao excluir livro:', error);
+    throw new Error('Erro ao excluir livro');
   }
+}
 
-  initialBooks.splice(bookIndex, 1);
+// Schema de validação para criação de gênero
+const genreSchema = z.object({
+  name: z.string().min(1, { message: 'Nome do gênero é obrigatório.' }),
+});
 
-  revalidatePath('/books'); 
-  redirect('/books'); 
+export async function createGenreAction(prevState: any, formData: FormData) {
+  try {
+    const rawFormData = Object.fromEntries(formData.entries());
+    const validatedFields = genreSchema.safeParse(rawFormData);
+
+    if (!validatedFields.success) {
+      return {
+        errors: validatedFields.error.flatten().fieldErrors,
+        message: 'Falha na validação do formulário.',
+      };
+    }
+
+    const { name } = validatedFields.data;
+
+    await createGenre(name);
+
+    revalidatePath('/books');
+    revalidatePath('/add-book');
+    
+    return {
+      errors: {},
+      message: `Gênero "${name}" criado com sucesso!`,
+    };
+  } catch (error) {
+    console.error('Erro ao criar gênero:', error);
+    return {
+      errors: {},
+      message: 'Erro ao criar gênero. Pode ser que já exista um gênero com esse nome.',
+    };
+  }
 }

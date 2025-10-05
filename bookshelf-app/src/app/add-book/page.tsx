@@ -1,309 +1,226 @@
-// src/app/add-book/page.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import Image from 'next/image';
-import { useFormState, useFormStatus } from 'react-dom'; 
-
-import { Button } from '@/components/ui/button';
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Slider } from '@/components/ui/slider';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Slider } from '@/components/ui/slider';
+import { useFormState, useFormStatus } from 'react-dom';
+import { createBook, createGenreAction } from '@/app/actions';
+import { readingStatusOptions, Genre } from '@/lib/types';
 import { toast } from 'sonner';
-
-import { availableGenres } from '@/lib/types';
-import { createBook } from '@/app/actions'; 
-
-const formSchema = z.object({
-  title: z.string().min(1, { message: 'Título é obrigatório.' }),
-  author: z.string().min(1, { message: 'Autor é obrigatório.' }),
-  genre: z.string().optional(),
-  year: z.coerce.number().int().min(1000).max(new Date().getFullYear()).optional().or(z.literal('')), 
-  pages: z.coerce.number().int().min(1).optional().or(z.literal('')), 
-  rating: z.number().min(1).max(5).optional(),
-  synopsis: z.string().optional(),
-  cover: z.string().url({ message: 'URL da capa inválida.' }).optional().or(z.literal('')), 
-  current_page: z.coerce.number().int().min(0).optional().or(z.literal('')), 
-  status: z.enum(['QUERO_LER', 'LENDO', 'LIDO', 'PAUSADO', 'ABANDONADO'], { message: 'Status de leitura inválido.' }),
-  notes: z.string().optional(),
-});
-
-export default function AddBookPage() {
-  const [coverPreview, setCoverPreview] = useState<string | null>(null);
-
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema) as any,
-    defaultValues: {
-      title: '',
-      author: '',
-      genre: '',
-      year: '',
-      pages: '',
-      rating: 3,
-      synopsis: '',
-      cover: '',
-      current_page: '',
-      status: 'QUERO_LER',
-      notes: '',
-    },
-  });
-
-  const [state, formAction] = useFormState(createBook, { errors: {}, message: '' });
-
-  useEffect(() => {
-    if (state.message && !state.errors) {
-      toast.success(state.message);
-      form.reset();
-    } else if (state.errors) {
-      Object.entries(state.errors).forEach(([key, value]) => {
-        form.setError(key as keyof z.infer<typeof formSchema>, { type: 'server', message: (value as string[]).join(', ') });
-      });
-      toast.error(state.message || 'Erro ao adicionar livro.');
-    }
-  }, [state, form]);
-
-  const coverFieldValue = form.watch('cover');
-  useEffect(() => {
-    if (coverFieldValue && z.string().url().safeParse(coverFieldValue).success) {
-      setCoverPreview(coverFieldValue);
-    } else {
-      setCoverPreview(null);
-    }
-  }, [coverFieldValue]);
-
-  const totalFields = Object.keys(form.getValues()).length;
-  const filledFields = Object.keys(form.getValues()).filter(key => {
-    const value = form.getValues(key as keyof z.infer<typeof formSchema>);
-    return value !== '' && value !== undefined && value !== null;
-  }).length;
-  const formProgress = (filledFields / totalFields) * 100;
-
-  return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <h1 className="text-3xl font-bold text-center">Adicionar Novo Livro</h1>
-      
-      <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
-        <div className="bg-blue-600 h-2.5 rounded-full transition-all duration-500 ease-out" style={{ width: `${formProgress}%` }}></div>
-      </div>
-      <p className="text-sm text-center text-gray-500">Progresso do Formulário: {formProgress.toFixed(0)}%</p>
-
-      <Form {...form}>
-        <form action={formAction} className="space-y-6">
-          <FormField
-            control={form.control}
-            name="title"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Título <span className="text-red-500">*</span></FormLabel>
-                <FormControl>
-                  <Input placeholder="O Nome do Vento" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="author"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Autor <span className="text-red-500">*</span></FormLabel>
-                <FormControl>
-                  <Input placeholder="Patrick Rothfuss" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="genre"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Gênero</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione um gênero" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {availableGenres.map(genre => (
-                      <SelectItem key={genre} value={genre}>{genre}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="year"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Ano de Publicação</FormLabel>
-                  <FormControl>
-                    <Input type="number" placeholder="2007" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="pages"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Total de Páginas</FormLabel>
-                  <FormControl>
-                    <Input type="number" placeholder="672" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-
-          <FormField
-            control={form.control}
-            name="rating"
-            render={({ field: { value, onChange } }) => (
-              <FormItem>
-                <FormLabel>Avaliação (1-5 estrelas)</FormLabel>
-                <FormControl>
-                  <Slider
-                    min={1}
-                    max={5}
-                    step={1}
-                    value={[value || 3]}
-                    onValueChange={(val) => onChange(val[0])}
-                    className="w-[60%]"
-                  />
-                </FormControl>
-                <FormDescription>Avaliação atual: {value || 3} estrelas</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="synopsis"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Sinopse</FormLabel>
-                <FormControl>
-                  <Textarea placeholder="Uma breve descrição do livro..." {...field} rows={4} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="cover"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>URL da Capa</FormLabel>
-                <FormControl>
-                  <Input placeholder="https://example.com/cover.jpg" {...field} />
-                </FormControl>
-                {coverPreview && (
-                  <div className="mt-2 w-32 h-48 relative border rounded-md overflow-hidden">
-                    <Image src={coverPreview} alt="Preview da Capa" fill style={{ objectFit: 'cover' }} />
-                  </div>
-                )}
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="status"
-            render={({ field }) => (
-              <FormItem className="space-y-3">
-                <FormLabel>Status de Leitura</FormLabel>
-                <FormControl>
-                  <RadioGroup
-                    onValueChange={field.onChange}
-                    value={field.value}
-                    className="flex flex-col space-y-1"
-                  >
-                    {['QUERO_LER', 'LENDO', 'LIDO', 'PAUSADO', 'ABANDONADO'].map(status => (
-                      <FormItem key={status} className="flex items-center space-x-3 space-y-0">
-                        <FormControl>
-                          <RadioGroupItem value={status} />
-                        </FormControl>
-                        <FormLabel className="font-normal">
-                          {status.replace('_', ' ')}
-                        </FormLabel>
-                      </FormItem>
-                    ))}
-                  </RadioGroup>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {form.watch('status') === 'LENDO' && (
-            <FormField
-              control={form.control}
-              name="current_page"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Página Atual</FormLabel>
-                  <FormControl>
-                    <Input type="number" placeholder="150" {...field} />
-                  </FormControl>
-                  <FormDescription>A página em que você está atualmente.</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          )}
-
-          <FormField
-            control={form.control}
-            name="notes"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Notas Pessoais</FormLabel>
-                <FormControl>
-                  <Textarea placeholder="Minhas anotações sobre o livro..." {...field} rows={3} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <SubmitButton />
-        </form>
-      </Form>
-    </div>
-  );
-}
 
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" className="w-full" disabled={pending}>
+    <Button type="submit" disabled={pending}>
       {pending ? 'Adicionando...' : 'Adicionar Livro'}
     </Button>
+  );
+}
+
+function AddGenreForm({ onGenreAdded }: { onGenreAdded: () => void }) {
+  const [state, formAction] = useFormState(createGenreAction, null);
+  const [genreName, setGenreName] = useState('');
+
+  useEffect(() => {
+    if (state?.message) {
+      if (state.message.includes('sucesso')) {
+        toast.success(state.message);
+        setGenreName('');
+        onGenreAdded(); 
+      } else {
+        toast.error(state.message);
+      }
+    }
+  }, [state, onGenreAdded]);
+
+  return (
+    <form action={formAction} className="flex gap-2 mt-4">
+      <Input
+        type="text"
+        name="name"
+        placeholder="Novo Gênero"
+        value={genreName}
+        onChange={(e) => setGenreName(e.target.value)}
+        required
+      />
+      <Button type="submit">Adicionar Gênero</Button>
+    </form>
+  );
+}
+
+export default function AddBookPage() {
+  const [state, formAction] = useFormState(createBook, null);
+  const [rating, setRating] = useState(0);
+  const [genres, setGenres] = useState<Genre[]>([]);
+  const [currentPage, setCurrentPage] = useState(0);
+
+  const fetchGenres = async () => {
+    const res = await fetch('/api/categories');
+    const data = await res.json();
+    setGenres(data.genres);
+  };
+
+  useEffect(() => {
+    fetchGenres();
+  }, []);
+
+  useEffect(() => {
+    if (state?.message && state.message.includes('Falha')) {
+      toast.error(state.message);
+    }
+  }, [state]);
+
+  return (
+    <div className="container mx-auto py-8">
+      <Card className="max-w-2xl mx-auto">
+        <CardHeader>
+          <CardTitle className="text-2xl font-bold">Adicionar Novo Livro</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form action={formAction} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="title">Título</Label>
+                <Input id="title" name="title" required />
+                {state?.errors?.title && (
+                  <p className="text-red-500 text-sm mt-1">{state.errors.title}</p>
+                )}
+              </div>
+              <div>
+                <Label htmlFor="author">Autor</Label>
+                <Input id="author" name="author" required />
+                {state?.errors?.author && (
+                  <p className="text-red-500 text-sm mt-1">{state.errors.author}</p>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="genreId">Gênero</Label>
+              <Select name="genreId">
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um gênero" />
+                </SelectTrigger>
+                <SelectContent>
+                  {genres.map((genre) => (
+                    <SelectItem key={genre.id} value={genre.id}>
+                      {genre.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <AddGenreForm onGenreAdded={fetchGenres} />
+              {state?.errors?.genreId && (
+                <p className="text-red-500 text-sm mt-1">{state.errors.genreId}</p>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="year">Ano de Publicação</Label>
+                <Input id="year" name="year" type="number" />
+                {state?.errors?.year && (
+                  <p className="text-red-500 text-sm mt-1">{state.errors.year}</p>
+                )}
+              </div>
+              <div>
+                <Label htmlFor="pages">Número de Páginas</Label>
+                <Input id="pages" name="pages" type="number" />
+                {state?.errors?.pages && (
+                  <p className="text-red-500 text-sm mt-1">{state.errors.pages}</p>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="isbn">ISBN</Label>
+              <Input id="isbn" name="isbn" type="text" />
+              {state?.errors?.isbn && (
+                <p className="text-red-500 text-sm mt-1">{state.errors.isbn}</p>
+              )}
+            </div>
+
+            <div>
+              <Label htmlFor="cover">URL da Capa</Label>
+              <Input id="cover" name="cover" type="url" />
+              {state?.errors?.cover && (
+                <p className="text-red-500 text-sm mt-1">{state.errors.cover}</p>
+              )}
+            </div>
+
+            <div>
+              <Label htmlFor="synopsis">Sinopse</Label>
+              <Textarea id="synopsis" name="synopsis" rows={4} />
+              {state?.errors?.synopsis && (
+                <p className="text-red-500 text-sm mt-1">{state.errors.synopsis}</p>
+              )}
+            </div>
+
+            <div>
+              <Label htmlFor="notes">Notas Pessoais</Label>
+              <Textarea id="notes" name="notes" rows={4} />
+              {state?.errors?.notes && (
+                <p className="text-red-500 text-sm mt-1">{state.errors.notes}</p>
+              )}
+            </div>
+
+            <div>
+              <Label htmlFor="rating">Avaliação ({rating} estrelas)</Label>
+              <Slider
+                id="rating"
+                name="rating"
+                min={0}
+                max={5}
+                step={1}
+                value={[rating]}
+                onValueChange={(value) => setRating(value[0])}
+                className="mt-2"
+              />
+              {state?.errors?.rating && (
+                <p className="text-red-500 text-sm mt-1">{state.errors.rating}</p>
+              )}
+            </div>
+
+            <div>
+              <Label>Status de Leitura</Label>
+              <RadioGroup name="status" defaultValue="QUERO_LER" className="flex flex-wrap gap-4 mt-2">
+                {readingStatusOptions.map((option) => (
+                  <div key={option.value} className="flex items-center space-x-2">
+                    <RadioGroupItem value={option.value} id={option.value} />
+                    <Label htmlFor={option.value}>{option.label}</Label>
+                  </div>
+                ))}
+              </RadioGroup>
+              {state?.errors?.status && (
+                <p className="text-red-500 text-sm mt-1">{state.errors.status}</p>
+              )}
+            </div>
+
+            <div>
+              <Label htmlFor="currentPage">Página Atual</Label>
+              <Input
+                id="currentPage"
+                name="currentPage"
+                type="number"
+                min={0}
+                value={currentPage}
+                onChange={(e) => setCurrentPage(Number(e.target.value))}
+              />
+              {state?.errors?.currentPage && (
+                <p className="text-red-500 text-sm mt-1">{state.errors.currentPage}</p>
+              )}
+            </div>
+
+            <SubmitButton />
+          </form>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

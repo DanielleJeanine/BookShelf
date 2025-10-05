@@ -1,30 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { initialBooks } from '@/lib/data';
-import { Book } from '@/lib/types';
+import { getBook, updateBook, deleteBook } from '@/lib/database';
+import { ReadingStatus } from '@/generated/prisma';
 
 const updateBookSchema = z.object({
   title: z.string().min(1, 'Título é obrigatório').optional(),
   author: z.string().min(1, 'Autor é obrigatório').optional(),
-  genre: z.string().optional(),
+  genreId: z.string().optional(),
   year: z.number().int().min(1000).max(new Date().getFullYear()).optional(),
   pages: z.number().int().min(1).optional(),
   rating: z.number().min(1).max(5).optional(),
   synopsis: z.string().optional(),
   cover: z.string().url().optional(),
-  current_page: z.number().int().min(0).optional(),
+  currentPage: z.number().int().min(0).optional(),
   status: z.enum(['QUERO_LER', 'LENDO', 'LIDO', 'PAUSADO', 'ABANDONADO']).optional(),
+  isbn: z.string().optional(),
   notes: z.string().optional(),
 });
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     
-    const book = initialBooks.find(b => b.id === id);
+    const book = await getBook(id);
     
     if (!book) {
       return NextResponse.json(
@@ -45,28 +46,36 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
     
     const validatedData = updateBookSchema.parse(body);
-    const bookIndex = initialBooks.findIndex(b => b.id === id);
-    
-    if (bookIndex === -1) {
+
+    const existingBook = await getBook(id);
+    if (!existingBook) {
       return NextResponse.json(
         { error: 'Livro não encontrado' },
         { status: 404 }
       );
     }
 
-    const updatedBook: Book = {
-      ...initialBooks[bookIndex],
-      ...validatedData,
-    };
-
-    initialBooks[bookIndex] = updatedBook;
+    const updatedBook = await updateBook(id, {
+      title: validatedData.title,
+      author: validatedData.author,
+      genreId: validatedData.genreId,
+      year: validatedData.year,
+      pages: validatedData.pages,
+      rating: validatedData.rating,
+      synopsis: validatedData.synopsis,
+      cover: validatedData.cover,
+      currentPage: validatedData.currentPage,
+      status: validatedData.status as ReadingStatus,
+      isbn: validatedData.isbn,
+      notes: validatedData.notes,
+    });
 
     return NextResponse.json(updatedBook);
   } catch (error) {
@@ -85,24 +94,22 @@ export async function PUT(
   }
 }
 
-
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     
-    const bookIndex = initialBooks.findIndex(b => b.id === id);
-    
-    if (bookIndex === -1) {
+    const existingBook = await getBook(id);
+    if (!existingBook) {
       return NextResponse.json(
         { error: 'Livro não encontrado' },
         { status: 404 }
       );
     }
 
-    const deletedBook = initialBooks.splice(bookIndex, 1)[0];
+    const deletedBook = await deleteBook(id);
 
     return NextResponse.json({
       message: 'Livro removido com sucesso',
