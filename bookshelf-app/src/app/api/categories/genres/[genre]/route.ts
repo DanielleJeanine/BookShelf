@@ -1,32 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { availableGenres } from '@/lib/types'; 
+import { deleteGenre, getGenres } from '@/lib/database';
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { genre: string } }
+  { params }: { params: Promise<{ genre: string }> }
 ) {
   try {
-    const { genre } = params;
+    const { genre: genreId } = await params;
     
-    const decodedGenre = decodeURIComponent(genre);
+    const decodedGenreId = decodeURIComponent(genreId);
     
-    const genreIndex = availableGenres.findIndex(g => g === decodedGenre);
-    
-    if (genreIndex === -1) {
+    const deletedGenre = await deleteGenre(decodedGenreId);
+
+    return NextResponse.json({
+      message: 'Gênero removido com sucesso',
+      genre: deletedGenre,
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('Record to delete does not exist')) {
       return NextResponse.json(
         { error: 'Gênero não encontrado' },
         { status: 404 }
       );
     }
 
-    const removedGenre = availableGenres.splice(genreIndex, 1)[0];
+    if (error instanceof Error && error.message.includes('Foreign key constraint')) {
+      return NextResponse.json(
+        { error: 'Não é possível remover o gênero pois há livros associados a ele' },
+        { status: 409 }
+      );
+    }
 
-    return NextResponse.json({
-      message: 'Gênero removido com sucesso',
-      genre: removedGenre,
-      genres: availableGenres,
-    });
-  } catch (error) {
     console.error('Erro ao remover gênero:', error);
     return NextResponse.json(
       { error: 'Erro interno do servidor' },

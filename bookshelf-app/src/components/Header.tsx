@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { BookIcon } from 'lucide-react';
+import { BookOpen, Sparkles } from 'lucide-react';
 import { ThemeToggle } from './themeToggle';
 
 export function Header() {
@@ -7,8 +7,18 @@ export function Header() {
     <header className="bg-primary text-primary-foreground p-4 shadow-md">
       <div className="container mx-auto flex items-center justify-between">
         <Link href="/" className="flex items-center space-x-2">
-          <BookIcon className="h-6 w-6" />
-          <span className="text-xl font-bold">BookShelf</span>
+          <div className="relative">
+            <BookOpen className="h-8 w-8 transition-transform group-hover:scale-110" />
+            <Sparkles className="h-4 w-4 absolute -top-1 -right-1 text-primary-foreground/70 animate-pulse" />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-2xl font-bold tracking-wider" style={{ fontFamily: 'var(--font-cinzel)' }}>
+              BookShelf
+            </span>
+            <span className="text-xs tracking-widest opacity-80" style={{ fontFamily: 'var(--font-crimson)' }}>
+              Biblioteca Encantada
+            </span>
+          </div>
         </Link>
         <div className="flex items-center space-x-4">
           <nav>

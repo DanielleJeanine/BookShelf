@@ -1,53 +1,53 @@
 'use client';
 
-import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Trash2Icon } from 'lucide-react';
-import { deleteBook } from '@/app/actions'; 
-import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { deleteBook } from '@/app/actions';
+import { useFormStatus } from 'react-dom';
 
 interface DeleteBookButtonProps {
   bookId: string;
-  bookTitle: string;
 }
 
-export function DeleteBookButton({ bookId, bookTitle }: DeleteBookButtonProps) {
-  const [isDeleting, setIsDeleting] = useState(false);
-
-  const handleDelete = async () => {
-    setIsDeleting(true);
-    try {
-      await deleteBook(bookId);
-      toast.success(`Livro "${bookTitle}" excluído com sucesso!`);
-    } catch (error) {
-      toast.error('Erro ao excluir livro. Tente novamente.');
-      setIsDeleting(false);
-    }
-  };
-
+function DeleteButtonContent() {
+  const { pending } = useFormStatus();
   return (
-    <Dialog>
-      <DialogTrigger asChild>
-        <Button variant="destructive" disabled={isDeleting}>
-          <Trash2Icon className="h-4 w-4 mr-2" /> 
-          {isDeleting ? 'Excluindo...' : 'Excluir'}
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Confirmar Exclusão</DialogTitle>
-          <DialogDescription>
-            Tem certeza que deseja excluir o livro &quot;{bookTitle}&quot;? Esta ação não pode ser desfeita.
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
-          <Button variant="outline">Cancelar</Button>
-          <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
-            {isDeleting ? 'Excluindo...' : 'Excluir'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <Button variant="destructive" disabled={pending}>
+      {pending ? 'Excluindo...' : 'Excluir'}
+    </Button>
+  );
+}
+
+export function DeleteBookButton({ bookId }: DeleteBookButtonProps) {
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button variant="destructive">Excluir</Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Esta ação não pode ser desfeita. Isso excluirá permanentemente este livro do seu catálogo.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <form action={deleteBook.bind(null, bookId)}>
+            <DeleteButtonContent />
+          </form>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }

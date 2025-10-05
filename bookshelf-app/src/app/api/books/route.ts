@@ -1,52 +1,46 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
-import { initialBooks } from '@/lib/data'; 
-import { Book } from '@/lib/types';
+import { getBooks, createBook, searchBooks, getBooksByGenre, getBooksByStatus } from '@/lib/database';
+import { ReadingStatus } from '@/generated/prisma';
 
 const createBookSchema = z.object({
   title: z.string().min(1, 'Título é obrigatório'),
   author: z.string().min(1, 'Autor é obrigatório'),
-  genre: z.string().optional(),
+  genreId: z.string().optional(),
   year: z.number().int().min(1000).max(new Date().getFullYear()).optional(),
   pages: z.number().int().min(1).optional(),
   rating: z.number().min(1).max(5).optional(),
   synopsis: z.string().optional(),
   cover: z.string().url().optional(),
-  current_page: z.number().int().min(0).optional(),
-  status: z.enum(['QUERO_LER', 'LENDO', 'LIDO', 'PAUSADO', 'ABANDONADO']),
+  currentPage: z.number().int().min(0).optional(),
+  status: z.enum(['QUERO_LER', 'LENDO', 'LIDO', 'PAUSADO', 'ABANDONADO']).default('QUERO_LER'),
+  isbn: z.string().optional(),
   notes: z.string().optional(),
 });
-
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
+    const search = searchParams.get('search');
     const title = searchParams.get('title');
-    const author = searchParams.get('author');
-    const genre = searchParams.get('genre');
+    const genreId = searchParams.get('genreId');
     const status = searchParams.get('status');
 
-    let filteredBooks = [...initialBooks];
+    let books;
 
-    if (title) {
-      filteredBooks = filteredBooks.filter(book =>
-        book.title.toLowerCase().includes(title.toLowerCase()) ||
-        book.author.toLowerCase().includes(title.toLowerCase()) // Busca por título ou autor
-      );
-    }
-
-    if (genre) {
-      filteredBooks = filteredBooks.filter(book => book.genre === genre);
-    }
-
-    if (status) {
-      filteredBooks = filteredBooks.filter(book => book.status === status);
+    if (search || title) {
+      books = await searchBooks(search || title || '');
+    } else if (genreId) {
+      books = await getBooksByGenre(genreId);
+    } else if (status) {
+      books = await getBooksByStatus(status as ReadingStatus);
+    } else {
+      books = await getBooks();
     }
 
     return NextResponse.json({
-      books: filteredBooks,
-      total: filteredBooks.length,
+      books,
+      total: books.length,
     });
   } catch (error) {
     console.error('Erro ao buscar livros:', error);
@@ -63,12 +57,20 @@ export async function POST(request: NextRequest) {
     
     const validatedData = createBookSchema.parse(body);
 
-    const newBook: Book = {
-      id: uuidv4(),
-      ...validatedData,
-    };
-
-    initialBooks.push(newBook);
+    const newBook = await createBook({
+      title: validatedData.title,
+      author: validatedData.author,
+      genreId: validatedData.genreId,
+      year: validatedData.year,
+      pages: validatedData.pages,
+      rating: validatedData.rating,
+      synopsis: validatedData.synopsis,
+      cover: validatedData.cover,
+      currentPage: validatedData.currentPage,
+      status: validatedData.status as ReadingStatus,
+      isbn: validatedData.isbn,
+      notes: validatedData.notes,
+    });
 
     return NextResponse.json(newBook, { status: 201 });
   } catch (error) {
