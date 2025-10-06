@@ -1,6 +1,6 @@
 import { getBooks, getGenres, getReadingStatusOptions, searchBooks, getBooksByGenre, getBooksByStatus } from '@/lib/database';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { BookCard } from '@/components/bookCard';
+import { BookCard } from '@/components/BookCard';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -11,15 +11,15 @@ import { BooksFilter } from '@/components/booksFilter';
 import { BookWithGenre } from '@/lib/types';
 
 interface BooksPageProps {
-  searchParams: {
+  searchParams: Promise<{
     search?: string;
     genreId?: string;
     status?: string;
-  };
+  }>;
 }
 
 export default async function BooksPage({ searchParams }: BooksPageProps) {
-  const { search, genreId, status } = searchParams;
+  const { search, genreId, status } = await searchParams;
 
   let books: BookWithGenre[] = [];
   let totalBooks = 0;
@@ -30,7 +30,7 @@ export default async function BooksPage({ searchParams }: BooksPageProps) {
     } else if (genreId) {
       books = await getBooksByGenre(genreId) as BookWithGenre[];
     } else if (status) {
-      books = await getBooksByStatus(status as any) as BookWithGenre[];
+      books = await getBooksByStatus(status as 'QUERO_LER' | 'LENDO' | 'LIDO' | 'PAUSADO' | 'ABANDONADO') as BookWithGenre[];
     } else {
       books = await getBooks() as BookWithGenre[];
     }

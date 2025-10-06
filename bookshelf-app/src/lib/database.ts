@@ -127,6 +127,29 @@ export async function createGenre(name: string) {
   }
 }
 
+export async function updateGenre(id: string, name: string) {
+  try {
+    return await prisma.genre.update({
+      where: { id },
+      data: { name },
+    });
+  } catch (error) {
+    console.error('Erro ao atualizar gênero:', error);
+    throw new Error('Falha ao atualizar gênero');
+  }
+}
+
+export async function getGenre(id: string) {
+  try {
+    return await prisma.genre.findUnique({
+      where: { id },
+    });
+  } catch (error) {
+    console.error('Erro ao buscar gênero:', error);
+    throw new Error('Falha ao buscar gênero');
+  }
+}
+
 export async function deleteGenre(id: string) {
   try {
     return await prisma.genre.delete({
@@ -151,13 +174,11 @@ export async function searchBooks(query: string) {
           {
             title: {
               contains: query,
-              mode: 'insensitive',
             },
           },
           {
             author: {
               contains: query,
-              mode: 'insensitive',
             },
           },
         ],
@@ -206,5 +227,37 @@ export async function getBooksByStatus(status: ReadingStatus) {
   } catch (error) {
     console.error('Erro ao buscar livros por status:', error);
     throw new Error('Falha ao buscar livros por status');
+  }
+}
+
+export async function getDashboardStats() {
+  try {
+    // Busca todos os livros do banco de dados
+    const books = await prisma.book.findMany({
+      include: {
+        genre: true,
+      },
+    });
+
+    // Calcula as estatísticas
+    const stats = {
+      totalBooks: books.length,
+      readingBooks: books.filter(book => book.status === 'LENDO').length,
+      finishedBooks: books.filter(book => book.status === 'LIDO').length,
+      totalPagesRead: books.reduce((sum, book) => {
+        if (book.status === 'LIDO' && book.pages) {
+          return sum + book.pages;
+        }
+        if (book.status === 'LENDO' && book.currentPage) {
+          return sum + book.currentPage;
+        }
+        return sum;
+      }, 0),
+    };
+
+    return stats;
+  } catch (error) {
+    console.error('Erro ao buscar estatísticas:', error);
+    throw new Error('Falha ao buscar estatísticas do dashboard');
   }
 }

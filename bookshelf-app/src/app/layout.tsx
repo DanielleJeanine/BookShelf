@@ -1,12 +1,22 @@
 // src/app/layout.tsx
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Crimson_Text, Cinzel } from 'next/font/google';
 import './globals.css';
-import { Header } from '@/components/header';
+import { Header } from '@/components/Header';
 import { Toaster } from '@/components/ui/sonner';
 import { ThemeProvider } from '@/components/providers';
 
-const inter = Inter({ subsets: ['latin'] });
+const crimsonText = Crimson_Text({ 
+  weight: ['400', '600', '700'],
+  subsets: ['latin'],
+  variable: '--font-crimson'
+});
+
+const cinzel = Cinzel({ 
+  weight: ['400', '600', '700'],
+  subsets: ['latin'],
+  variable: '--font-cinzel'
+});
 
 export const metadata: Metadata = {
   title: 'BookShelf - Gerenciador de Livros Pessoais',
@@ -20,7 +30,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
-      <body className={inter.className}>
+      <body className={`${crimsonText.variable} ${cinzel.variable}`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system" 
