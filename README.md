@@ -1,6 +1,6 @@
-# 📚 Bookshelf
+# 📚 Libris Arcana
 
-**Bookshelf** é uma aplicação web feita para organizar sua biblioteca pessoal. Com ela, você pode registrar livros que já leu, que está lendo ou que deseja ler, tudo de forma intuitiva e visualmente agradável.
+**Libris Arcana** é uma aplicação web feita para organizar sua biblioteca pessoal. Com ela, você pode registrar livros que já leu, que está lendo ou que deseja ler, tudo de forma intuitiva e visualmente agradável.
 
 ---
 
