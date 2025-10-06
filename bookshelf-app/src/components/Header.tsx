@@ -13,10 +13,10 @@ export function Header() {
           </div>
           <div className="flex flex-col">
             <span className="text-2xl font-bold tracking-wider" style={{ fontFamily: 'var(--font-cinzel)' }}>
-              BookShelf
+              Libris Arcana
             </span>
             <span className="text-xs tracking-widest opacity-80" style={{ fontFamily: 'var(--font-crimson)' }}>
-              Biblioteca Encantada
+              O Mistério dos Livros
             </span>
           </div>
         </Link>
@@ -36,6 +36,11 @@ export function Header() {
               <li>
                 <Link href="/add-book" className="hover:underline">
                   Adicionar Livro
+                </Link>
+              </li>
+              <li>
+                <Link href="/genres" className="hover:underline">
+                  Gêneros
                 </Link>
               </li>
             </ul>

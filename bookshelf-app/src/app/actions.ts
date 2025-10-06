@@ -2,8 +2,8 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { z } from 'zod';
-import { createBook as dbCreateBook, updateBook as dbUpdateBook, deleteBook as dbDeleteBook, createGenre } from '@/lib/database';
+import { success, z } from 'zod';
+import { createBook as dbCreateBook, updateBook as dbUpdateBook, deleteBook as dbDeleteBook, createGenre, updateGenre, deleteGenre } from '@/lib/database';
 import { ReadingStatus } from '@/generated/prisma';
 
 const bookSchema = z.object({
@@ -21,7 +21,7 @@ const bookSchema = z.object({
   notes: z.string().optional().transform(e => e === "" ? undefined : e),
 });
 
-export async function createBook(prevState: any, formData: FormData) {
+export async function createBook(prevState: unknown, formData: FormData) {
   try {
     const rawFormData = Object.fromEntries(formData.entries());
     const validatedFields = bookSchema.safeParse(rawFormData);
@@ -51,7 +51,13 @@ export async function createBook(prevState: any, formData: FormData) {
     });
 
     revalidatePath('/books');
-    redirect('/books');
+    revalidatePath('/');
+    
+    return {
+      errors: {},
+      message: 'success',
+      bookTitle: title,
+    };
   } catch (error) {
     console.error('Erro ao criar livro:', error);
     return {
@@ -61,7 +67,7 @@ export async function createBook(prevState: any, formData: FormData) {
   }
 }
 
-export async function updateBook(id: string, prevState: any, formData: FormData) {
+export async function updateBook(id: string, prevState: unknown, formData: FormData) {
   try {
     const rawFormData = Object.fromEntries(formData.entries());
     const validatedFields = bookSchema.safeParse(rawFormData);
@@ -92,7 +98,10 @@ export async function updateBook(id: string, prevState: any, formData: FormData)
 
     revalidatePath('/books');
     revalidatePath(`/books/${id}`);
+    revalidatePath('/');
     redirect(`/books/${id}`);
+    
+
   } catch (error) {
     console.error('Erro ao atualizar livro:', error);
     return {
@@ -106,6 +115,7 @@ export async function deleteBook(id: string) {
   try {
     await dbDeleteBook(id);
     revalidatePath('/books');
+    revalidatePath('/');
     redirect('/books');
   } catch (error) {
     console.error('Erro ao excluir livro:', error);
@@ -113,12 +123,11 @@ export async function deleteBook(id: string) {
   }
 }
 
-// Schema de validação para criação de gênero
 const genreSchema = z.object({
   name: z.string().min(1, { message: 'Nome do gênero é obrigatório.' }),
 });
 
-export async function createGenreAction(prevState: any, formData: FormData) {
+export async function createGenreAction(prevState: unknown, formData: FormData) {
   try {
     const rawFormData = Object.fromEntries(formData.entries());
     const validatedFields = genreSchema.safeParse(rawFormData);
@@ -138,6 +147,7 @@ export async function createGenreAction(prevState: any, formData: FormData) {
     revalidatePath('/add-book');
     
     return {
+      success: true,
       errors: {},
       message: `Gênero "${name}" criado com sucesso!`,
     };
@@ -146,6 +156,51 @@ export async function createGenreAction(prevState: any, formData: FormData) {
     return {
       errors: {},
       message: 'Erro ao criar gênero. Pode ser que já exista um gênero com esse nome.',
+    };
+  }
+}
+
+export async function updateGenreAction(prevState: unknown, formData: FormData) {
+  try {
+    const id = formData.get('id') as string;
+    const name = formData.get('name') as string;
+
+    // Validação
+    if (!name || name.trim() === '') {
+      return {
+        success: false,
+        message: 'Nome do gênero é obrigatório',
+        errors: { name: ['Nome do gênero é obrigatório'] }
+      };
+    }
+
+    await updateGenre(id, name.trim());
+
+    return {
+      success: true,
+      message: 'Gênero atualizado com sucesso!'
+    };
+  } catch (error) {
+    console.error('Erro ao atualizar gênero:', error);
+    return {
+      success: false,
+      message: 'Erro ao atualizar gênero. Tente novamente.'
+    };
+  }
+}
+
+export async function deleteGenreAction(id: string) {
+  try {
+    await deleteGenre(id);
+    return {
+      success: true,
+      message: 'Gênero excluído com sucesso!'
+    };
+  } catch (error) {
+    console.error('Erro ao excluir gênero:', error);
+    return {
+      success: false,
+      message: 'Erro ao excluir gênero. Pode haver livros associados a ele.'
     };
   }
 }

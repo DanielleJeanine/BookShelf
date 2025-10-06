@@ -1,68 +1,81 @@
-'use client';
-
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { initialBooks } from '@/lib/data';
-import { Book } from '@/lib/types';
-import { useEffect, useState } from 'react';
+import { getDashboardStats } from '@/lib/database';
 
-export default function DashboardPage() {
-  const [books, setBooks] = useState<Book[]>([]);
+export const revalidate = 0;
+export const dynamic = 'force-dynamic';
 
-  useEffect(() => {
-    
-    setBooks(initialBooks);
-  }, []);
-
-  const totalBooks = books.length;
-  const readingBooks = books.filter(book => book.status === 'LENDO').length;
-  const finishedBooks = books.filter(book => book.status === 'LIDO').length;
-  const totalPagesRead = books.reduce((sum, book) => {
-    if (book.status === 'LIDO' && book.pages) {
-      return sum + book.pages;
-    }
-    if (book.status === 'LENDO' && book.current_page) {
-      return sum + book.current_page;
-    }
-    return sum;
-  }, 0);
+export default async function DashboardPage() {
+  const stats = await getDashboardStats();
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Dashboard</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Total de Livros</CardTitle>
+    <div className="space-y-8">
+      <div className="text-center space-y-2">
+        <h1 className="text-4xl font-bold tracking-wide" style={{ fontFamily: 'var(--font-cinzel)' }}>
+          Dashboard
+        </h1>
+        <div className="flex items-center justify-center gap-4 text-muted-foreground">
+          <span>✦</span>
+          <p className="text-sm italic" style={{ fontFamily: 'var(--font-crimson)' }}>
+            Bem-vindo à sua biblioteca encantada
+          </p>
+          <span>✦</span>
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="hover:shadow-xl transition-shadow duration-300">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <span>📚</span>
+              <span style={{ fontFamily: 'var(--font-cinzel)' }}>Total de Livros</span>
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-4xl font-bold">{totalBooks}</p>
+            <p className="text-5xl font-bold text-primary" style={{ fontFamily: 'var(--font-cinzel)' }}>
+              {stats.totalBooks}
+            </p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Lendo Atualmente</CardTitle>
+        <Card className="hover:shadow-xl transition-shadow duration-300">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <span>📖</span>
+              <span style={{ fontFamily: 'var(--font-cinzel)' }}>Lendo Atualmente</span>
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-4xl font-bold">{readingBooks}</p>
+            <p className="text-5xl font-bold text-primary" style={{ fontFamily: 'var(--font-cinzel)' }}>
+              {stats.readingBooks}
+            </p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Livros Finalizados</CardTitle>
+        <Card className="hover:shadow-xl transition-shadow duration-300">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <span>✨</span>
+              <span style={{ fontFamily: 'var(--font-cinzel)' }}>Livros Finalizados</span>
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-4xl font-bold">{finishedBooks}</p>
+            <p className="text-5xl font-bold text-primary" style={{ fontFamily: 'var(--font-cinzel)' }}>
+              {stats.finishedBooks}
+            </p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Total de Páginas Lidas</CardTitle>
+        <Card className="hover:shadow-xl transition-shadow duration-300">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <span>📜</span>
+              <span style={{ fontFamily: 'var(--font-cinzel)' }}>Páginas Lidas</span>
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-4xl font-bold">{totalPagesRead}</p>
+            <p className="text-5xl font-bold text-primary" style={{ fontFamily: 'var(--font-cinzel)' }}>
+              {stats.totalPagesRead}
+            </p>
           </CardContent>
         </Card>
       </div>
