@@ -28,8 +28,8 @@ async function migrateData() {
 
     for (const book of initialBooks) {
       try {
-        const genreId = book.genreId ? genreMap.get(book.genreId) : undefined;
-        const currentPage = book.currentPage || 0;
+        const genreId = book.genre ? genreMap.get(book.genre) : undefined;
+        const currentPage = book.current_page || 0;
 
         let status: 'QUERO_LER' | 'LENDO' | 'LIDO' | 'PAUSADO' | 'ABANDONADO' = 'QUERO_LER';
         if (book.status) {
