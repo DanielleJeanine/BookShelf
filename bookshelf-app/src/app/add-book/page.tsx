@@ -110,7 +110,7 @@ export default function AddBookPage() {
 
   return (
     <div className="container mx-auto py-8">
-      <Card className="max-w-2xl mx-auto mx-4 md:mx-auto hover:shadow-2xl transition-shadow duration-300">
+      <Card className="max-w-2xl mx-auto md:mx-auto hover:shadow-2xl transition-shadow duration-300">
         <CardHeader className="text-center border-b border-border/50 pb-6">
           <div className="flex items-center justify-center gap-3 mb-2">
             <span className="text-2xl">✨</span>
