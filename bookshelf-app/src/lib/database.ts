@@ -116,6 +116,7 @@ export async function getGenres() {
   }
 }
 
+
 export async function createGenre(name: string) {
   try {
     return await prisma.genre.create({
