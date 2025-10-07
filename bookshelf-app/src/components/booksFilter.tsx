@@ -33,6 +33,7 @@ export function BooksFilter({
 
   const [searchTerm, setSearchTerm] = useState(currentSearch);
 
+  // Função para converter código de status em texto legível
   const formatStatusLabel = (status: string) => {
     const statusMap: Record<string, string> = {
       QUERO_LER: "Quero Ler",
@@ -44,10 +45,12 @@ export function BooksFilter({
     return statusMap[status] || status;
   };
 
+  // Debounce para busca em tempo real
   useEffect(() => {
     const timer = setTimeout(() => {
       handleSearch(searchTerm);
     }, 500);
+
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
@@ -93,54 +96,64 @@ export function BooksFilter({
   };
 
   return (
-    <div className="flex flex-wrap gap-4 p-4 bg-card rounded-lg shadow-sm">
-      <div className="relative flex-grow">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+    <div className="flex flex-col sm:flex-row flex-wrap gap-3 md:gap-4 p-4 bg-card rounded-lg shadow-sm">
+      {/* Campo de Busca com Lupa */}
+      <div className="relative flex-1 min-w-[200px]">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
         <Input
           placeholder="Buscar por título ou autor..."
-          className="pl-9 pr-2 w-full sm:w-auto"
+          className="pl-9 pr-4"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
       </div>
-      <div className="flex flex-col sm:flex-row gap-3 md:gap-4 mb-4 md:mb-6">
-        <Select onValueChange={handleGenreChange} value={currentGenreId} >
-          <SelectTrigger className="w-full sm:w-auto">
-            <SelectValue placeholder="Filtrar por Gênero" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">Todos os Gêneros</SelectItem>
-            {genres.map((genre) => (
-              <SelectItem key={genre.id} value={genre.id}>
-                {genre.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
 
-        <Select
-          onValueChange={handleStatusChange}
-          value={currentStatus || "ALL"}
+      {/* Select de Gênero */}
+      <Select 
+        onValueChange={handleGenreChange} 
+        value={currentGenreId || "ALL"}
+      >
+        <SelectTrigger className="w-full sm:w-[180px]">
+          <SelectValue placeholder="Filtrar por Gênero" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="ALL">Todos os Gêneros</SelectItem>
+          {genres.map((genre) => (
+            <SelectItem key={genre.id} value={genre.id}>
+              {genre.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      {/* Select de Status */}
+      <Select
+        onValueChange={handleStatusChange}
+        value={currentStatus || "ALL"}
+      >
+        <SelectTrigger className="w-full sm:w-[180px]">
+          <SelectValue placeholder="Filtrar por Status" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="ALL">Todos os Status</SelectItem>
+          {readingStatusOptions.map((option) => (
+            <SelectItem key={option.value} value={option.value}>
+              {formatStatusLabel(option.value)}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      {/* Botão Limpar Filtros */}
+      {(currentSearch || currentGenreId || currentStatus) && (
+        <Button 
+          variant="outline" 
+          onClick={handleClearFilters}
+          className="w-full sm:w-auto"
         >
-          <SelectTrigger className="min-w-[180px] w-full sm:w-auto">
-            <SelectValue placeholder="Filtrar por Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">Todos os Status</SelectItem>
-            {readingStatusOptions.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {formatStatusLabel(option.label)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        {(currentSearch || currentGenreId || currentStatus) && (
-          <Button variant="outline" onClick={handleClearFilters}>
-            <X className="mr-2 h-4 w-4" /> Limpar Filtros
-          </Button>
-        )}
-      </div>
+          <X className="mr-2 h-4 w-4" /> Limpar Filtros
+        </Button>
+      )}
     </div>
   );
 }

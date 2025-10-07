@@ -174,11 +174,13 @@ export async function searchBooks(query: string) {
           {
             title: {
               contains: query,
+              mode: 'insensitive',
             },
           },
           {
             author: {
               contains: query,
+              mode: 'insensitive',
             },
           },
         ],
@@ -232,14 +234,12 @@ export async function getBooksByStatus(status: ReadingStatus) {
 
 export async function getDashboardStats() {
   try {
-    // Busca todos os livros do banco de dados
     const books = await prisma.book.findMany({
       include: {
         genre: true,
       },
     });
 
-    // Calcula as estatísticas
     const stats = {
       totalBooks: books.length,
       readingBooks: books.filter(book => book.status === 'LENDO').length,
