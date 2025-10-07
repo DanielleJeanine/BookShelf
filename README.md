@@ -21,5 +21,6 @@
 - [Tailwind CSS](https://tailwindcss.com/)
 - [React Hook Form](https://react-hook-form.com/) para formulários
 - [Zod](https://zod.dev/) para validação de dados
+- [Postgres](https://www.postgresql.org) para banco de dados
 
 ---
