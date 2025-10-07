@@ -19,8 +19,8 @@ const cinzel = Cinzel({
 });
 
 export const metadata: Metadata = {
-  title: 'BookShelf - Gerenciador de Livros Pessoais',
-  description: 'Catalogue, organize, and track your reading progress.',
+  title: 'Libris Arcana - Gerenciador de Livros Pessoais',
+  description: 'Catalogue, organize e acompanhe seu status de leitura.',
 };
 
 export default function RootLayout({
