@@ -1,6 +1,6 @@
-import { Book } from './types';
+import { MockBook } from './types';
 
-export const initialBooks: Book[] = [
+export const initialBooks: MockBook[] = [
   {
     id: '1',
     title: 'O Senhor dos Anéis',

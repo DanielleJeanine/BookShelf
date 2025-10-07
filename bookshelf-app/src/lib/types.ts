@@ -22,6 +22,21 @@ export type BookWithGenre = {
   updatedAt: Date;
 };
 
+export interface MockBook {
+  id: string;
+  title: string;
+  author: string;
+  genre: string;
+  year: number;
+  pages: number;
+  rating: number;
+  synopsis: string;
+  cover: string;
+  current_page: number;
+  status: 'QUERO_LER' | 'LENDO' | 'LIDO' | 'PAUSADO' | 'ABANDONADO';
+  notes: string;
+};
+
 export const availableGenres = [
   'Literatura Brasileira', 'Ficção Científica', 'Realismo Mágico', 'Ficção',
   'Fantasia', 'Romance', 'Biografia', 'História', 'Autoajuda', 'Tecnologia',
