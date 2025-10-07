@@ -1,12 +1,12 @@
-import { getGenres } from '@/lib/database';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
-import { PlusCircle, BookOpen } from 'lucide-react';
-import { GenresTable } from '@/components/genresTable';
+import { getGenres } from "@/lib/database";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { PlusCircle, BookOpen } from "lucide-react";
+import { GenresTable } from "@/components/genresTable";
 
 export const revalidate = 0;
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export default async function GenresPage() {
   const genres = await getGenres();
@@ -23,21 +23,21 @@ export default async function GenresPage() {
             Crie, edite e organize os gêneros literários da sua biblioteca
           </p>
         </div>
-        <Link href="/books">
-          <Button variant="outline">
-            Voltar para Biblioteca
-          </Button>
-        </Link>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Gêneros Cadastrados</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <GenresTable genres={genres} />
-        </CardContent>
-      </Card>
+      <div className="overflow-x-auto -mx-4 md:mx-0">
+        <div className="inline-block min-w-full align-middle">
+          <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
+            <Card>
+              <CardHeader>
+                <CardTitle>Gêneros Cadastrados</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <GenresTable genres={genres} />
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

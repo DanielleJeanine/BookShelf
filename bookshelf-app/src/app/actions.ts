@@ -114,12 +114,20 @@ export async function updateBook(id: string, prevState: unknown, formData: FormD
 export async function deleteBook(id: string) {
   try {
     await dbDeleteBook(id);
-    revalidatePath('/books');
     revalidatePath('/');
-    redirect('/books');
+    revalidatePath('/books');
+    revalidatePath(`/books/${id}`);
+    
+    return { 
+      success: true, 
+      message: 'Livro excluído com sucesso!' 
+    };
   } catch (error) {
     console.error('Erro ao excluir livro:', error);
-    throw new Error('Erro ao excluir livro');
+    return { 
+      success: false, 
+      message: 'Erro ao excluir livro. Tente novamente.' 
+    };
   }
 }
 

@@ -103,7 +103,7 @@
 /* Tema de Biblioteca Antiga - Modo Escuro (Biblioteca à Meia-Luz) */
 .dark {
   /* Cores base - Biblioteca escura */
-  --background: oklch(34.904% 0.06875 291.616);
+  --background: oklch(29.719% 0.09058 301.971);
   --foreground: oklch(0.92 0.015 80);
 
   --card: oklch(21.469% 0.06104 295.183);
@@ -295,5 +295,52 @@
   .dark .ornament-divider::before,
   .dark .ornament-divider::after {
     color: oklch(0.72 0.15 85);
+  }
+}
+
+/* Padding responsivo para containers */
+.container {
+  @apply px-4 sm:px-6 lg:px-8;
+}
+
+/* Texto responsivo */
+.text-responsive-xl {
+  @apply text-2xl sm:text-3xl md:text-4xl;
+}
+
+.text-responsive-lg {
+  @apply text-xl sm:text-2xl md:text-3xl;
+}
+
+.text-responsive-base {
+  @apply text-sm sm:text-base md:text-lg;
+}
+
+/* Espaçamento responsivo */
+.space-y-responsive {
+  @apply space-y-3 md:space-y-4 lg:space-y-6;
+}
+
+/* Cards responsivos */
+.card-responsive {
+  @apply p-4 sm:p-6 md:p-8;
+}
+
+/* Ocultar em mobile */
+.hide-mobile {
+  @apply hidden sm:block;
+}
+
+/* Mostrar apenas em mobile */
+.show-mobile {
+  @apply block sm:hidden;
+}
+
+/* Scroll suave em tabelas mobile */
+@media (max-width: 640px) {
+  table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
   }
 }

@@ -1,13 +1,17 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Genre } from '@/lib/types';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Pencil, Trash2, Plus, Check, X } from 'lucide-react';
-import { deleteGenreAction, createGenreAction, updateGenreAction } from '@/app/actions';
-import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
+import { useState } from "react";
+import { Genre } from "@/lib/types";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Pencil, Trash2, Plus, Check, X } from "lucide-react";
+import {
+  deleteGenreAction,
+  createGenreAction,
+  updateGenreAction,
+} from "@/app/actions";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 interface GenresTableProps {
   genres: Genre[];
@@ -16,8 +20,8 @@ interface GenresTableProps {
 export function GenresTable({ genres }: GenresTableProps) {
   const router = useRouter();
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingName, setEditingName] = useState('');
-  const [newGenreName, setNewGenreName] = useState('');
+  const [editingName, setEditingName] = useState("");
+  const [newGenreName, setNewGenreName] = useState("");
   const [isAdding, setIsAdding] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -28,22 +32,22 @@ export function GenresTable({ genres }: GenresTableProps) {
 
   const handleCancelEdit = () => {
     setEditingId(null);
-    setEditingName('');
+    setEditingName("");
   };
 
   const handleSaveEdit = async (id: string) => {
     setIsLoading(true);
     const formData = new FormData();
-    formData.append('id', id);
-    formData.append('name', editingName);
+    formData.append("id", id);
+    formData.append("name", editingName);
 
     const result = await updateGenreAction(null, formData);
 
     if (result.success) {
       toast.success(result.message);
       setEditingId(null);
-      setEditingName('');
-      
+      setEditingName("");
+
       router.refresh();
       setTimeout(() => {
         window.location.reload();
@@ -64,7 +68,7 @@ export function GenresTable({ genres }: GenresTableProps) {
 
     if (result.success) {
       toast.success(result.message);
-      
+
       router.refresh();
       setTimeout(() => {
         window.location.reload();
@@ -77,21 +81,21 @@ export function GenresTable({ genres }: GenresTableProps) {
 
   const handleAddGenre = async () => {
     if (!newGenreName.trim()) {
-      toast.error('Digite um nome para o gênero');
+      toast.error("Digite um nome para o gênero");
       return;
     }
 
     setIsLoading(true);
     const formData = new FormData();
-    formData.append('name', newGenreName);
+    formData.append("name", newGenreName);
 
     const result = await createGenreAction(null, formData);
 
     if (result.success) {
       toast.success(result.message);
-      setNewGenreName('');
+      setNewGenreName("");
       setIsAdding(false);
-      
+
       router.refresh();
       setTimeout(() => {
         window.location.reload();
@@ -105,7 +109,11 @@ export function GenresTable({ genres }: GenresTableProps) {
   return (
     <div className="space-y-4">
       {!isAdding && (
-        <Button onClick={() => setIsAdding(true)} className="w-full" disabled={isLoading}>
+        <Button
+          onClick={() => setIsAdding(true)}
+          className="w-full"
+          disabled={isLoading}
+        >
           <Plus className="mr-2 h-4 w-4" />
           Adicionar Novo Gênero
         </Button>
@@ -118,22 +126,27 @@ export function GenresTable({ genres }: GenresTableProps) {
             value={newGenreName}
             onChange={(e) => setNewGenreName(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && !isLoading) handleAddGenre();
-              if (e.key === 'Escape') {
+              if (e.key === "Enter" && !isLoading) handleAddGenre();
+              if (e.key === "Escape") {
                 setIsAdding(false);
-                setNewGenreName('');
+                setNewGenreName("");
               }
             }}
             disabled={isLoading}
             autoFocus
           />
-          <Button onClick={handleAddGenre} size="icon" variant="default" disabled={isLoading}>
+          <Button
+            onClick={handleAddGenre}
+            size="icon"
+            variant="default"
+            disabled={isLoading}
+          >
             <Check className="h-4 w-4" />
           </Button>
           <Button
             onClick={() => {
               setIsAdding(false);
-              setNewGenreName('');
+              setNewGenreName("");
             }}
             size="icon"
             variant="outline"
@@ -144,18 +157,21 @@ export function GenresTable({ genres }: GenresTableProps) {
         </div>
       )}
 
-      <div className="border rounded-lg overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-muted">
+      <div className="border rounded-lg overflow-hidden w-full">
+        <table className="w-full sm:w-auto">
+          <thead className="bg-muted w-full sm:w-auto">
             <tr>
-              <th className="text-left p-4 font-semibold">Nome do Gênero</th>
-              <th className="text-right p-4 font-semibold w-32">Ações</th>
+              <th className="w-full text-left p-4 font-semibold">Nome do Gênero</th>
+              <th className=" text-right p-4 font-semibold w-32">Ações</th>
             </tr>
           </thead>
           <tbody>
             {genres.length === 0 ? (
               <tr>
-                <td colSpan={2} className="text-center p-8 text-muted-foreground">
+                <td
+                  colSpan={2}
+                  className="text-center p-8 text-muted-foreground"
+                >
                   Nenhum gênero cadastrado. Adicione o primeiro!
                 </td>
               </tr>
@@ -168,8 +184,9 @@ export function GenresTable({ genres }: GenresTableProps) {
                         value={editingName}
                         onChange={(e) => setEditingName(e.target.value)}
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter' && !isLoading) handleSaveEdit(genre.id);
-                          if (e.key === 'Escape') handleCancelEdit();
+                          if (e.key === "Enter" && !isLoading)
+                            handleSaveEdit(genre.id);
+                          if (e.key === "Escape") handleCancelEdit();
                         }}
                         disabled={isLoading}
                         autoFocus
@@ -229,9 +246,9 @@ export function GenresTable({ genres }: GenresTableProps) {
       </div>
 
       <p className="text-sm text-muted-foreground">
-        Total: {genres.length} {genres.length === 1 ? 'gênero' : 'gêneros'}
+        Total: {genres.length} {genres.length === 1 ? "gênero" : "gêneros"}
       </p>
-      
+
       {isLoading && (
         <p className="text-sm text-muted-foreground text-center">
           Processando... aguarde

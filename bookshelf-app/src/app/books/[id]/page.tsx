@@ -12,7 +12,7 @@ interface BookDetailPageProps {
 }
 
 export default async function BookDetailPage({ params }: BookDetailPageProps) {
-  const { id } = params;
+  const { id } = await params;
   const book = await getBook(id);
 
   if (!book) {
@@ -36,8 +36,10 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
     }
   };
 
+  
+
   return (
-    <div className="container mx-auto py-8">
+    <div className="container mx-auto py-4 md:py-8 px-4">
       <Card className="max-w-4xl mx-auto">
         <CardHeader>
           <CardTitle className="text-3xl font-bold flex justify-between items-center">
@@ -46,12 +48,12 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
               <Link href={`/books/${book.id}/edit`}>
                 <Button variant="outline">Editar</Button>
               </Link>
-              <DeleteBookButton bookId={book.id} />
+              <DeleteBookButton bookId={book.id} bookTitle={book.title} />
             </div>
           </CardTitle>
           <p className="text-lg text-muted-foreground">por {book.author}</p>
         </CardHeader>
-        <CardContent className="grid md:grid-cols-3 gap-6">
+        <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
           <div className="md:col-span-1">
             {book.cover && (
               <Image
@@ -69,7 +71,7 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
               {book.synopsis || "Nenhuma sinopse disponível."}
             </p>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
               <div>
                 <p className="font-semibold">Gênero:</p>
                 <Badge variant="secondary">{book.genre?.name || "N/A"}</Badge>

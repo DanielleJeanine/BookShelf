@@ -1,7 +1,6 @@
 import { prisma } from './prisma';
 import { Book, Genre, ReadingStatus } from '@/generated/prisma/client';
 
-
 export interface CreateBookData {
   title: string;
   author: string;
