@@ -37,10 +37,10 @@ export function Header() {
             </div>
             <div className="flex flex-col">
               <span className="text-lg md:text-2xl font-bold tracking-wider" style={{ fontFamily: 'var(--font-cinzel)' }}>
-                BookShelf
+                Libris Arcana
               </span>
               <span className="text-[10px] md:text-xs tracking-widest opacity-80" style={{ fontFamily: 'var(--font-crimson)' }}>
-                Biblioteca Encantada
+                O Mistério dos Livros
               </span>
             </div>
           </Link>
