@@ -1,232 +1,242 @@
-"use client";
+'use client';
 
-import { use, useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { StarRating } from "@/components/StarRating";
-import { ImagePreview } from "@/components/ImagePreview";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { useFormState, useFormStatus } from "react-dom";
-import { updateBook, createGenreAction } from "@/app/actions";
-import { readingStatusOptions, BookWithGenre, Genre } from "@/lib/types";
-import { toast } from "sonner";
+import { use, useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { useRouter } from 'next/navigation';
+import { updateBook, createGenreAction } from '@/app/actions';
+import { readingStatusOptions, BookWithGenre, Genre } from '@/lib/types';
+import { toast } from 'sonner';
+import { Star } from 'lucide-react';
 
 interface EditBookPageProps {
   params: Promise<{ id: string }>;
 }
 
-function SubmitButton() {
-  const { pending } = useFormStatus();
+// Componente de Estrelas para Avaliação
+function StarRating({ rating, onRatingChange }: { rating: number; onRatingChange: (rating: number) => void }) {
+  const [hover, setHover] = useState(0);
+
   return (
-    <Button type="submit" disabled={pending}>
-      {pending ? "Atualizando..." : "Atualizar Livro"}
-    </Button>
+    <div className="flex items-center gap-1">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <button
+          key={star}
+          type="button"
+          onClick={() => onRatingChange(star)}
+          onMouseEnter={() => setHover(star)}
+          onMouseLeave={() => setHover(0)}
+          className="transition-all hover:scale-110"
+        >
+          <Star
+            className={`h-8 w-8 ${
+              star <= (hover || rating)
+                ? 'fill-yellow-400 text-yellow-400'
+                : 'fill-none text-gray-300'
+            }`}
+          />
+        </button>
+      ))}
+      <span className="ml-2 text-sm text-muted-foreground">
+        {rating > 0 ? `${rating} estrela${rating !== 1 ? 's' : ''}` : 'Sem avaliação'}
+      </span>
+    </div>
   );
 }
 
+// Componente de Adicionar Gênero (Separado do form principal)
 function AddGenreForm({ onGenreAdded }: { onGenreAdded: () => void }) {
-  const [state, formAction] = useFormState(createGenreAction, null);
-  const [genreName, setGenreName] = useState("");
+  const [genreName, setGenreName] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    if (state?.message) {
-      if (state.message.includes("sucesso")) {
-        toast.success(state.message);
-        setGenreName("");
-        onGenreAdded();
-      } else {
-        toast.error(state.message);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!genreName.trim()) return;
+
+    setIsSubmitting(true);
+    const formData = new FormData();
+    formData.append('name', genreName.trim());
+
+    try {
+      const result = await createGenreAction(null, formData);
+      
+      if (result?.message) {
+        if (result.message.includes('sucesso')) {
+          toast.success(result.message);
+          setGenreName('');
+          onGenreAdded();
+        } else {
+          toast.error(result.message);
+        }
       }
+    } catch (error) {
+      toast.error('Erro ao criar gênero');
+      console.error(error);
+    } finally {
+      setIsSubmitting(false);
     }
-  }, [state, onGenreAdded]);
+  };
 
   return (
-    <form action={formAction} className="flex gap-2 mt-4">
+    <form onSubmit={handleSubmit} className="flex gap-2 mt-2">
       <Input
         type="text"
-        name="name"
         placeholder="Novo Gênero"
         value={genreName}
         onChange={(e) => setGenreName(e.target.value)}
-        required
+        disabled={isSubmitting}
       />
-      <Button type="submit">Adicionar Gênero</Button>
+      <Button type="submit" disabled={isSubmitting || !genreName.trim()}>
+        {isSubmitting ? 'Adicionando...' : 'Adicionar'}
+      </Button>
     </form>
   );
 }
 
 export default function EditBookPage({ params }: EditBookPageProps) {
-  const router = useRouter();
-  
-  // ✅ CORREÇÃO: Use React.use() para desembrulhar Promise em Client Component
   const { id } = use(params);
+  const router = useRouter();
   
   const [book, setBook] = useState<BookWithGenre | null>(null);
   const [rating, setRating] = useState(0);
   const [genres, setGenres] = useState<Genre[]>([]);
+  const [selectedGenre, setSelectedGenre] = useState<string | undefined>(undefined);
+  const [selectedStatus, setSelectedStatus] = useState('QUERO_LER');
   const [currentPage, setCurrentPage] = useState(0);
-  const [coverUrl, setCoverUrl] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const [state, formAction] = useFormState(updateBook.bind(null, id), null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchBook = async () => {
     try {
-      console.log('Buscando livro com ID:', id);
       const res = await fetch(`/api/books/${id}`);
-      console.log('Resposta da API:', res.status);
-      
       const data = await res.json();
-      console.log('Dados recebidos:', data);
       
       if (res.ok) {
         setBook(data);
         setRating(data.rating || 0);
         setCurrentPage(data.currentPage || 0);
-        setCoverUrl(data.cover || "");
-        setError(null);
+        setSelectedGenre(data.genreId || undefined);
+        setSelectedStatus(data.status || 'QUERO_LER');
       } else {
-        const errorMsg = data.error || "Erro ao carregar livro";
-        setError(errorMsg);
-        toast.error(errorMsg);
+        toast.error(data.error || 'Erro ao carregar livro');
       }
-    } catch (err) {
-      console.error('Erro ao buscar livro:', err);
-      const errorMsg = "Erro ao conectar com o servidor";
-      setError(errorMsg);
-      toast.error(errorMsg);
-    } finally {
-      setIsLoading(false);
+    } catch (error) {
+      toast.error('Erro ao carregar livro');
+      console.error(error);
     }
   };
 
   const fetchGenres = async () => {
     try {
-      const res = await fetch("/api/categories");
+      const res = await fetch('/api/categories');
       const data = await res.json();
       setGenres(data.genres);
-    } catch (err) {
-      console.error('Erro ao buscar gêneros:', err);
-      toast.error("Erro ao carregar gêneros");
+    } catch (error) {
+      console.error('Erro ao carregar gêneros:', error);
     }
   };
 
   useEffect(() => {
-    if (id) {
-      fetchBook();
-      fetchGenres();
-    }
+    fetchBook();
+    fetchGenres();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  useEffect(() => {
-    if (state && !state.errors && state.message) {
-      toast.success(state.message || "Livro atualizado com sucesso!");
-      router.push(`/books/${id}`);
-    } else if (state?.message && state.message.includes("Falha")) {
-      toast.error(state.message);
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    const formData = new FormData(e.currentTarget);
+    formData.set('rating', rating.toString());
+    formData.set('currentPage', currentPage.toString());
+    formData.set('status', selectedStatus);
+    if (selectedGenre) {
+      formData.set('genreId', selectedGenre);
     }
-  }, [state, router, id]);
 
-  // Loading state
-  if (isLoading) {
-    return (
-      <div className="container mx-auto py-8">
-        <Card className="max-w-2xl mx-auto">
-          <CardContent className="p-8 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Carregando livro...</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+    try {
+      const result = await updateBook(id, null, formData);
 
-  // Error state
-  if (error || !book) {
+      if (result?.success) {
+        toast.success(result.message || 'Livro atualizado com sucesso!');
+        
+        // Aguardar um pouco para o toast aparecer
+        setTimeout(() => {
+          router.push(`/books/${id}`);
+          router.refresh();
+        }, 500);
+      } else if (result?.message) {
+        toast.error(result.message);
+        setIsSubmitting(false);
+      }
+    } catch (error) {
+      toast.error('Erro ao atualizar livro');
+      console.error(error);
+      setIsSubmitting(false);
+    }
+  };
+
+  if (!book) {
     return (
-      <div className="container mx-auto py-8">
-        <Card className="max-w-2xl mx-auto">
-          <CardContent className="p-8 text-center">
-            <h2 className="text-2xl font-bold mb-4 text-destructive">
-              Livro não encontrado
-            </h2>
-            <p className="text-muted-foreground mb-6">
-              {error || "O livro que você está tentando editar não existe ou foi removido."}
-            </p>
-            <div className="flex gap-4 justify-center">
-              <Button onClick={() => router.push("/books")}>
-                Voltar para Biblioteca
-              </Button>
-              <Button variant="outline" onClick={() => window.location.reload()}>
-                Tentar Novamente
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="container mx-auto py-8 text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+        <p className="mt-4 text-muted-foreground">Carregando livro...</p>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto py-8">
+    <div className="container mx-auto py-8 px-4">
       <Card className="max-w-2xl mx-auto">
         <CardHeader>
           <CardTitle className="text-2xl font-bold">
-            Editar Livro: {book.title}
+            ✦ Editar Livro: {book.title}
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <form action={formAction} className="space-y-4">
+          {/* FORM PRINCIPAL DO LIVRO */}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Título e Autor */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="title">Título</Label>
-                <Input
-                  id="title"
-                  name="title"
-                  defaultValue={book.title}
-                  required
+                <Label htmlFor="title">Título *</Label>
+                <Input 
+                  id="title" 
+                  name="title" 
+                  defaultValue={book.title} 
+                  required 
+                  disabled={isSubmitting}
                 />
-                {state?.errors?.title && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {state.errors.title}
-                  </p>
-                )}
               </div>
               <div>
-                <Label htmlFor="author">Autor</Label>
-                <Input
-                  id="author"
-                  name="author"
-                  defaultValue={book.author}
-                  required
+                <Label htmlFor="author">Autor *</Label>
+                <Input 
+                  id="author" 
+                  name="author" 
+                  defaultValue={book.author} 
+                  required 
+                  disabled={isSubmitting}
                 />
-                {state?.errors?.author && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {state.errors.author}
-                  </p>
-                )}
               </div>
             </div>
 
+            {/* Gênero */}
             <div>
               <Label htmlFor="genreId">Gênero</Label>
-              <Select name="genreId" defaultValue={book.genreId || ""}>
+              <Select 
+                value={selectedGenre} 
+                onValueChange={(value) => setSelectedGenre(value === 'none' ? undefined : value)}
+                disabled={isSubmitting}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione um gênero" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="none">Nenhum</SelectItem>
                   {genres.map((genre) => (
                     <SelectItem key={genre.id} value={genre.id}>
                       {genre.name}
@@ -234,177 +244,153 @@ export default function EditBookPage({ params }: EditBookPageProps) {
                   ))}
                 </SelectContent>
               </Select>
-              <AddGenreForm onGenreAdded={fetchGenres} />
-              {state?.errors?.genreId && (
-                <p className="text-red-500 text-sm mt-1">
-                  {state.errors.genreId}
-                </p>
-              )}
             </div>
 
+            {/* Ano e Páginas */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="year">Ano de Publicação</Label>
-                <Input
-                  id="year"
-                  name="year"
-                  type="number"
-                  defaultValue={book.year || ""}
+                <Input 
+                  id="year" 
+                  name="year" 
+                  type="number" 
+                  defaultValue={book.year || ''} 
+                  disabled={isSubmitting}
                 />
-                {state?.errors?.year && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {state.errors.year}
-                  </p>
-                )}
               </div>
               <div>
                 <Label htmlFor="pages">Número de Páginas</Label>
-                <Input
-                  id="pages"
-                  name="pages"
-                  type="number"
-                  defaultValue={book.pages || ""}
+                <Input 
+                  id="pages" 
+                  name="pages" 
+                  type="number" 
+                  defaultValue={book.pages || ''} 
+                  disabled={isSubmitting}
                 />
-                {state?.errors?.pages && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {state.errors.pages}
-                  </p>
-                )}
               </div>
             </div>
 
+            {/* ISBN */}
             <div>
               <Label htmlFor="isbn">ISBN</Label>
-              <Input
-                id="isbn"
-                name="isbn"
-                type="text"
-                defaultValue={book.isbn || ""}
+              <Input 
+                id="isbn" 
+                name="isbn" 
+                type="text" 
+                defaultValue={book.isbn || ''} 
+                disabled={isSubmitting}
               />
-              {state?.errors?.isbn && (
-                <p className="text-red-500 text-sm mt-1">{state.errors.isbn}</p>
-              )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="cover">URL da Capa</Label>
-                <Input
-                  id="cover"
-                  name="cover"
-                  type="url"
-                  value={coverUrl}
-                  onChange={(e) => setCoverUrl(e.target.value)}
-                  placeholder="https://exemplo.com/capa.jpg"
-                />
-                {state?.errors &&
-                  "cover" in state.errors &&
-                  state.errors.cover && (
-                    <p className="text-red-500 text-sm mt-1">
-                      {state.errors.cover}
-                    </p>
-                  )}
-              </div>
-              <div>
-                <ImagePreview url={coverUrl} alt="Preview da capa do livro" />
-              </div>
+            {/* URL da Capa */}
+            <div>
+              <Label htmlFor="cover">URL da Capa</Label>
+              <Input 
+                id="cover" 
+                name="cover" 
+                type="url" 
+                defaultValue={book.cover || ''} 
+                disabled={isSubmitting}
+              />
             </div>
 
+            {/* Sinopse */}
             <div>
               <Label htmlFor="synopsis">Sinopse</Label>
-              <Textarea
-                id="synopsis"
-                name="synopsis"
-                rows={4}
-                defaultValue={book.synopsis || ""}
+              <Textarea 
+                id="synopsis" 
+                name="synopsis" 
+                rows={4} 
+                defaultValue={book.synopsis || ''} 
+                disabled={isSubmitting}
               />
-              {state?.errors?.synopsis && (
-                <p className="text-red-500 text-sm mt-1">
-                  {state.errors.synopsis}
-                </p>
-              )}
             </div>
 
+            {/* Notas Pessoais */}
             <div>
               <Label htmlFor="notes">Notas Pessoais</Label>
-              <Textarea
-                id="notes"
-                name="notes"
-                rows={4}
-                defaultValue={book.notes || ""}
+              <Textarea 
+                id="notes" 
+                name="notes" 
+                rows={4} 
+                defaultValue={book.notes || ''} 
+                disabled={isSubmitting}
               />
-              {state?.errors?.notes && (
-                <p className="text-red-500 text-sm mt-1">
-                  {state.errors.notes}
-                </p>
-              )}
             </div>
 
+            {/* Avaliação com Estrelas */}
             <div>
-              <Label htmlFor="rating">Avaliação</Label>
+              <Label>Avaliação</Label>
               <input type="hidden" name="rating" value={rating} />
-              <StarRating value={rating} onChange={setRating} />
-              {state?.errors &&
-                "rating" in state.errors &&
-                state.errors.rating && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {state.errors.rating}
-                  </p>
-                )}
+              <StarRating rating={rating} onRatingChange={setRating} />
             </div>
 
+            {/* Status de Leitura */}
             <div>
               <Label>Status de Leitura</Label>
-              <RadioGroup
-                name="status"
-                defaultValue={book.status}
+              <input type="hidden" name="status" value={selectedStatus} />
+              <RadioGroup 
+                value={selectedStatus} 
+                onValueChange={setSelectedStatus}
                 className="flex flex-wrap gap-4 mt-2"
+                disabled={isSubmitting}
               >
                 {readingStatusOptions.map((option) => (
-                  <div
-                    key={option.value}
-                    className="flex items-center space-x-2"
-                  >
-                    <RadioGroupItem value={option.value} id={option.value} />
-                    <Label htmlFor={option.value}>{option.label}</Label>
+                  <div key={option.value} className="flex items-center space-x-2">
+                    <RadioGroupItem value={option.value} id={`edit-${option.value}`} />
+                    <Label htmlFor={`edit-${option.value}`}>{option.label}</Label>
                   </div>
                 ))}
               </RadioGroup>
-              {state?.errors?.status && (
-                <p className="text-red-500 text-sm mt-1">
-                  {state.errors.status}
-                </p>
-              )}
             </div>
 
+            {/* Página Atual */}
             <div>
-              <Label htmlFor="currentPage">Página Atual</Label>
+              <Label htmlFor="currentPage">
+                Página Atual {book.pages ? `(de ${book.pages})` : ''}
+              </Label>
               <Input
                 id="currentPage"
                 name="currentPage"
                 type="number"
                 min={0}
+                max={book.pages || undefined}
                 value={currentPage}
                 onChange={(e) => setCurrentPage(Number(e.target.value))}
+                disabled={isSubmitting}
               />
-              {state?.errors?.currentPage && (
-                <p className="text-red-500 text-sm mt-1">
-                  {state.errors.currentPage}
-                </p>
-              )}
             </div>
 
-            <div className="flex gap-4">
-              <SubmitButton />
-              <Button
-                type="button"
+            {/* Botões */}
+            <div className="flex gap-3 pt-4">
+              <Button 
+                type="submit" 
+                disabled={isSubmitting}
+                className="flex-1"
+              >
+                {isSubmitting ? 'Atualizando...' : 'Atualizar Livro'}
+              </Button>
+              <Button 
+                type="button" 
                 variant="outline"
                 onClick={() => router.push(`/books/${id}`)}
+                disabled={isSubmitting}
               >
                 Cancelar
               </Button>
             </div>
           </form>
+
+          {/* FORM DE ADICIONAR GÊNERO - FORA DO FORM PRINCIPAL */}
+          <div className="mt-6 pt-6 border-t">
+            <div className="p-4 bg-muted/50 rounded-md">
+              <h3 className="text-sm font-medium mb-2">Adicionar Novo Gênero</h3>
+              <p className="text-sm text-muted-foreground mb-3">
+                Não encontrou o gênero? Adicione um novo abaixo:
+              </p>
+              <AddGenreForm onGenreAdded={fetchGenres} />
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>

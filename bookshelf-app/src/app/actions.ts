@@ -96,15 +96,19 @@ export async function updateBook(id: string, prevState: unknown, formData: FormD
       notes,
     });
 
+    revalidatePath('/');
     revalidatePath('/books');
     revalidatePath(`/books/${id}`);
-    revalidatePath('/');
-    redirect(`/books/${id}`);
+    revalidatePath(`/books/${id}/edit`);
     
-
+    return {
+      success: true,
+      message: 'Livro atualizado com sucesso!',
+    };
   } catch (error) {
     console.error('Erro ao atualizar livro:', error);
     return {
+      success: false,
       errors: {},
       message: 'Erro ao atualizar livro. Tente novamente.',
     };
